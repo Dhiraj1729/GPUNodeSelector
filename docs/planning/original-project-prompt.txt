@@ -1,0 +1,762 @@
+I want to design and implement a focused Kubernetes project in:
+
+/Users/dhirajsriharsha/Preparation/GpuNodeSelector
+
+The directory currently exists but is empty and is not yet a Git repository.
+
+Before implementing, inspect the relevant environment and produce a day-by-day implementation plan with concrete deliverables, tests, commands, risks, and acceptance criteria. Do not begin implementation until I approve the plan.
+
+Reference project
+-----------------
+
+Inspect this existing project for reusable local-environment and scripting patterns:
+
+/Users/dhirajsriharsha/Preparation/ProjectMsgQueue
+
+In particular, inspect:
+
+- scripts/cluster-up.sh
+- scripts/cluster-down.sh behavior in the Makefile
+- scripts/doctor.sh
+- scripts/install-tools.sh
+- scripts/images.sh
+- Brewfile
+- Makefile
+- README.md
+
+Do not modify ProjectMsgQueue. Reuse or adapt its patterns in the new project.
+
+Important findings from the reference project:
+
+- It uses a named Colima profile.
+- It uses Docker through Colima.
+- It runs Minikube with the Docker driver and containerd.
+- It uses explicit Kubernetes and Docker contexts.
+- It saves environment versions in work/environment-versions.txt.
+- It separates image building from loading images into Minikube.
+- Its local default image architecture is linux/arm64 but supports linux/amd64.
+- Its current cluster script creates only one Minikube node; this new project requires a multi-node cluster.
+- It uses /opt/homebrew/bin and /opt/homebrew/sbin on macOS.
+- Scripts use set -euo pipefail.
+- Cluster and image operations are exposed through Makefile targets.
+
+Project purpose
+---------------
+
+Build a Kubernetes AI workload control plane consisting of:
+
+1. An AIWorkload Custom Resource Definition.
+2. A Go/Kubebuilder operator with a careful, idempotent reconciliation loop.
+3. A fake GPU device plugin for laptop development.
+4. A multi-node local Kubernetes cluster containing CPU and simulated GPU nodes.
+5. A mock AI inference workload that can run without CUDA.
+6. End-to-end tests demonstrating scheduling, GPU capacity exhaustion, recovery, update, drift correction, and deletion.
+
+This is not an LLM application and is not an autoscaling or telemetry project. It is a Kubernetes control-plane and device-resource-management project.
+
+Core architecture
+-----------------
+
+The architecture must preserve Kubernetes responsibility boundaries:
+
+AIWorkload CR
+    |
+    v
+AIWorkload Operator
+    |
+    | creates Deployment and Service
+    | adds GPU resource request
+    | adds GPU product selector
+    | adds GPU-node toleration
+    v
+Kubernetes API Server
+    |
+    v
+Default Kubernetes Scheduler
+    |
+    | selects a suitable node
+    v
+Kubelet
+    |
+    | allocates a fake GPU through the device plugin
+    v
+Mock inference container
+
+The operator expresses placement requirements. It must not directly bind pods to nodes and must not set spec.nodeName.
+
+Do not modify, fork, replace, or extend kube-scheduler for the MVP.
+
+Responsibility boundaries
+-------------------------
+
+Cluster bootstrap:
+
+- Creates the multi-node local cluster.
+- Labels the simulated GPU node.
+- Taints the simulated GPU node.
+- Leaves at least one worker available for ordinary CPU workloads.
+- Deploys the fake GPU device plugin.
+
+Fake device plugin:
+
+- Advertises fake GPU devices to the kubelet.
+- Uses an extended resource such as ai.dhiraj.io/gpu.
+- Reports a configured number of healthy fake devices.
+- Supports the kubelet Allocate request.
+- Does not perform real CUDA operations.
+
+AIWorkload operator:
+
+- Watches AIWorkload resources.
+- Creates and owns a Deployment and Service.
+- Adds GPU requests, product selectors, and tolerations to the pod template.
+- Reconciles desired state repeatedly and idempotently.
+- Repairs drift in fields owned by the operator.
+- Reports useful workload and scheduling status.
+- Does not manually choose nodes.
+- Does not manually reserve or count GPUs for scheduling decisions.
+- Does not label or taint nodes.
+- Does not cap requested replicas based on a precomputed capacity count.
+- Lets the scheduler remain the source of truth for concurrent resource allocation.
+
+Default scheduler:
+
+- Filters nodes by extended-resource capacity.
+- Applies the node selector or affinity.
+- Applies taints and tolerations.
+- Selects the final node.
+- Leaves excess replicas Pending when GPU capacity is exhausted.
+
+Kubelet:
+
+- Publishes device-plugin capacity in Node status.
+- Handles allocation of individual fake device IDs.
+- Releases allocations when pods terminate.
+
+Local cluster design
+--------------------
+
+Create an isolated environment with project-specific names:
+
+- Colima profile: gpu-node-selector
+- Docker context: colima-gpu-node-selector
+- Minikube profile/context: gpu-node-selector
+- Kubernetes namespace: ai-system for platform components
+- Sample AI workloads may use namespace ai-workloads
+
+Prefer adapting the proven Colima + Minikube approach from ProjectMsgQueue unless inspection finds a concrete blocker.
+
+Create a three-node Minikube cluster:
+
+- One control-plane node.
+- One CPU worker.
+- One simulated GPU worker.
+
+Do not hard-code node names without validation. Discover worker nodes safely and fail with a useful error if the expected topology is unavailable.
+
+Make CPU, memory, disk, node count, platform, context, profile, and namespace values overridable through environment variables. Pick conservative documented defaults, but first inspect host capacity and existing profiles. Do not interfere with the ProjectMsgQueue profiles.
+
+Configure the simulated GPU worker with labels such as:
+
+ai.dhiraj.io/gpu-node=true
+ai.dhiraj.io/gpu-product=A100
+
+Taint it:
+
+ai.dhiraj.io/gpu=true:NoSchedule
+
+The fake GPU device-plugin DaemonSet must:
+
+- Run only on nodes with ai.dhiraj.io/gpu-node=true.
+- Tolerate ai.dhiraj.io/gpu=true:NoSchedule.
+- Mount /var/lib/kubelet/device-plugins as required.
+- Advertise two fake GPUs on the simulated GPU worker for the MVP.
+
+Expected node capacity:
+
+ai.dhiraj.io/gpu: 2
+
+Ordinary applications must not schedule onto the dedicated GPU worker because they lack the toleration. AI workloads receive the toleration automatically from the operator.
+
+Implementation progression
+--------------------------
+
+Include these two stages in the plan.
+
+Stage 1: scheduling proof without the device plugin
+
+Temporarily advertise ai.dhiraj.io/gpu: 2 by patching the GPU node’s status.capacity. Use this only to validate:
+
+- Extended-resource scheduling.
+- GPU node labels.
+- GPU-node taint.
+- Pod resource requests.
+- Capacity exhaustion.
+- Resource release after pod termination.
+
+If a helper script for manual patching is retained, put it under hack/ or scripts/ and clearly document that it is a temporary or diagnostic mode that must not run concurrently with the fake device plugin.
+
+Stage 2: realistic fake device plugin
+
+Replace manual capacity patching with a Go device plugin using the Kubernetes device-plugin API.
+
+The final demonstrated path must use the fake device plugin, not a permanent manual Node status patch.
+
+Fake device plugin requirements
+-------------------------------
+
+Implement the plugin in Go.
+
+Use the Kubernetes device-plugin API supported by the selected Kubernetes/kubelet version.
+
+The plugin should:
+
+- Register with the kubelet registration socket.
+- Create its own Unix socket under /var/lib/kubelet/device-plugins.
+- Register the resource name ai.dhiraj.io/gpu.
+- Advertise configurable device IDs:
+  - fake-gpu-0
+  - fake-gpu-1
+- Report devices as Healthy through ListAndWatch.
+- Validate requested device IDs in Allocate.
+- Reject unknown or duplicate allocations.
+- Return an environment variable such as:
+  FAKE_GPU_DEVICES=fake-gpu-0
+- Recover or re-register after kubelet socket recreation where practical.
+- Shut down cleanly.
+- Provide focused tests for device inventory and allocation validation.
+
+No physical device files or CUDA libraries are required. The mock inference application should be able to read and display FAKE_GPU_DEVICES.
+
+The MVP needs only one fake GPU node with two devices. Design configuration cleanly enough that additional nodes and device counts can be added later, but do not expand scope unnecessarily.
+
+AIWorkload API
+--------------
+
+Use:
+
+apiVersion: ai.dhiraj.io/v1alpha1
+kind: AIWorkload
+
+Proposed API:
+
+apiVersion: ai.dhiraj.io/v1alpha1
+kind: AIWorkload
+metadata:
+  name: mock-llama
+  namespace: ai-workloads
+spec:
+  image: gpu-node-selector/mock-inference:dev
+  replicas: 2
+  port: 8080
+
+  gpu:
+    product: A100
+    count: 1
+
+  resources:
+    cpu: 100m
+    memory: 128Mi
+
+The exact Go types should use Kubernetes-native types where appropriate, such as resource.Quantity and metav1.Condition.
+
+Validation/defaults:
+
+- spec.image is required.
+- spec.replicas defaults to 1 and cannot be negative.
+- spec.port defaults to 8080 and must be a valid container port.
+- spec.gpu is required for this focused GPU MVP.
+- spec.gpu.product is required.
+- spec.gpu.count must be an integer greater than zero.
+- CPU and memory may be optional but must validate when provided.
+- Use Kubebuilder validation and default markers.
+- Do not expose implementation details such as the extended-resource name to ordinary AIWorkload users unless there is a strong reason.
+
+The operator translates:
+
+spec.gpu.count: 1
+
+into:
+
+resources:
+  limits:
+    ai.dhiraj.io/gpu: 1
+
+It translates:
+
+spec.gpu.product: A100
+
+into a required node selector or required node affinity matching:
+
+ai.dhiraj.io/gpu-product: A100
+
+It automatically adds the GPU-node toleration.
+
+The generated Deployment must not use nodeName.
+
+Status design
+-------------
+
+The CR status should include at least:
+
+status:
+  observedGeneration: 3
+  phase: CapacityBlocked
+  desiredReplicas: 3
+  updatedReplicas: 3
+  readyReplicas: 2
+  availableReplicas: 2
+  pendingReplicas: 1
+  endpoint: http://mock-llama.ai-workloads.svc:8080
+  conditions:
+    - type: Ready
+      status: "False"
+      reason: InsufficientGPU
+      message: One replica is pending because ai.dhiraj.io/gpu capacity is unavailable
+      observedGeneration: 3
+      lastTransitionTime: ...
+
+Suggested phases:
+
+- Pending
+- Provisioning
+- Running
+- Degraded
+- CapacityBlocked
+- Failed
+
+Use metav1.Condition and conventional Kubernetes condition handling.
+
+At minimum, consider conditions such as:
+
+- Ready
+- Progressing
+- Scheduled
+- CapacityAvailable
+
+Status must distinguish, where reasonably possible:
+
+- Insufficient ai.dhiraj.io/gpu capacity.
+- GPU product/node selector mismatch.
+- Untolerated taint or other scheduling constraints.
+- Image pull failure.
+- Deployment unavailable.
+- Normal rollout progress.
+
+Do not depend only on parsing human-readable text if structured Pod conditions and reasons are available. Where Kubernetes only exposes useful detail in a message, isolate parsing behind a focused helper and test it.
+
+Set status.observedGeneration so users can distinguish current status from stale status.
+
+Avoid unnecessary status writes. Patch status only when its semantic value has changed.
+
+Operator reconciliation requirements
+------------------------------------
+
+The main engineering focus is a high-quality reconciliation loop.
+
+The reconciler should follow this general shape:
+
+1. Fetch AIWorkload.
+2. Return successfully on NotFound.
+3. Validate or handle invalid desired state safely.
+4. Reconcile the desired Deployment.
+5. Reconcile the desired Service.
+6. Inspect Deployment and relevant Pods.
+7. Derive status and conditions.
+8. Patch status only if changed.
+9. Requeue only when necessary.
+
+Implementation requirements:
+
+- Desired Deployment and Service construction should live in focused, testable builder functions.
+- Use stable labels identifying the AIWorkload name and UID where appropriate.
+- Use controller OwnerReferences.
+- Watch owned Deployments and Services.
+- Arrange for relevant Pod changes to trigger reconciliation, even though pods are indirectly owned through ReplicaSets. A label-based watch/mapping function is acceptable.
+- Use CreateOrPatch, CreateOrUpdate, or server-side apply deliberately and document the choice.
+- Mutate only fields owned by this operator.
+- Preserve server-assigned Service fields such as clusterIP.
+- Preserve unrelated metadata where reasonable.
+- Detect an existing resource with the expected name that is controlled by someone else; do not silently adopt or overwrite it.
+- Make repeated reconciliation safe.
+- Do not create duplicate resources.
+- Handle resource-version conflicts through normal controller-runtime retry behavior.
+- Return errors rather than hiding them.
+- Use structured logging with namespace, name, generation, and reconciliation outcome.
+- Keep RBAC least-privileged.
+- Do not use a finalizer for ordinary Deployment and Service cleanup; OwnerReferences and garbage collection are sufficient. Add a finalizer only if a real external cleanup obligation is introduced.
+- Do not add artificial sleep calls to the reconciler.
+- Avoid a hot requeue loop.
+- Use event-driven reconciliation and a bounded RequeueAfter only where necessary for pending state refresh.
+
+Drift and update behavior
+-------------------------
+
+Demonstrate that the operator corrects drift in fields it owns.
+
+Examples:
+
+- If someone changes Deployment replicas from 2 to 1 while AIWorkload requests 2, the operator restores 2.
+- If someone removes the GPU resource limit, the operator restores it.
+- If someone removes the GPU node selector or toleration, the operator restores it.
+- If someone changes an unrelated annotation not owned by the operator, it should not be needlessly deleted.
+- Updating AIWorkload replicas updates the Deployment.
+- Updating its image triggers a normal Deployment rollout.
+- Updating GPU count or product updates the pod template and rollout.
+- Reapplying an unchanged AIWorkload should cause no harmful changes.
+
+Service behavior
+----------------
+
+Create a ClusterIP Service exposing spec.port.
+
+The operator must preserve its allocated clusterIP during reconciliation.
+
+The status endpoint should use stable Kubernetes service DNS.
+
+Mock inference workload
+-----------------------
+
+Build a lightweight mock server. Go or Python is acceptable, but prefer consistency and minimal image/runtime size.
+
+It should expose:
+
+- GET /healthz
+- GET /readyz
+- GET /device
+- POST /inference
+
+/device should return the value of FAKE_GPU_DEVICES.
+
+POST /inference can return a deterministic mock response. No real model, AI API, GPU, CUDA, or network dependency is required.
+
+Provide a non-root container image with a health check suitable for Kubernetes probes.
+
+Repository structure
+--------------------
+
+Use a clear structure compatible with Kubebuilder, for example:
+
+GpuNodeSelector/
+├── api/
+│   └── v1alpha1/
+├── cmd/
+│   ├── manager/
+│   ├── fake-device-plugin/
+│   └── mock-inference/
+├── internal/
+│   ├── controller/
+│   ├── fakegpu/
+│   └── workload/
+├── config/
+│   ├── crd/
+│   ├── default/
+│   ├── manager/
+│   ├── rbac/
+│   ├── samples/
+│   └── fake-device-plugin/
+├── deploy/
+│   └── docker/
+├── scripts/
+├── hack/
+├── tests/
+│   └── e2e/
+├── docs/
+├── work/
+├── Makefile
+├── Brewfile
+├── go.mod
+└── README.md
+
+Adapt this if Kubebuilder generates a better conventional structure. Do not fight Kubebuilder conventions merely to match this tree.
+
+Local automation
+----------------
+
+Provide Makefile targets similar to:
+
+- make doctor
+- make tools
+- make cluster-up
+- make cluster-configure
+- make cluster-down
+- make generate
+- make manifests
+- make fmt
+- make vet
+- make test
+- make envtest
+- make build
+- make docker-build
+- make minikube-load
+- make install
+- make deploy
+- make undeploy
+- make demo
+- make e2e
+- make verify
+
+Scripts must:
+
+- Use set -euo pipefail.
+- Resolve the repository root safely.
+- Validate the selected Docker and Kubernetes contexts.
+- Avoid modifying unrelated clusters.
+- Be safe to rerun where possible.
+- Fail with useful diagnostics.
+- Avoid destructive cleanup outside the named project profiles and namespaces.
+- Save useful environment and test evidence under work/.
+- Keep generated artifacts and temporary evidence out of source directories.
+
+Image handling
+--------------
+
+Build at least these images:
+
+- AIWorkload operator
+- Fake GPU device plugin
+- Mock inference server
+
+Support linux/arm64 and linux/amd64.
+
+Use local tags such as:
+
+- gpu-node-selector/operator:dev
+- gpu-node-selector/fake-device-plugin:dev
+- gpu-node-selector/mock-inference:dev
+
+Because Minikube uses its own containerd image store, explicitly load images after building them.
+
+Set a local-development imagePullPolicy that does not cause Kubernetes to attempt a registry pull for locally loaded images.
+
+Testing requirements
+--------------------
+
+Unit tests:
+
+- API defaults and validation where practical.
+- Desired Deployment construction.
+- Desired Service construction.
+- GPU limit translation.
+- Product selector translation.
+- Toleration injection.
+- Stable labels and OwnerReferences.
+- Preservation of Service clusterIP.
+- Reconciliation of create and update.
+- Repeated reconciliation.
+- Drift correction.
+- Foreign-owner collision handling.
+- Status phase derivation.
+- Condition transition behavior.
+- Insufficient-GPU scheduling diagnosis.
+- Fake-device allocation validation.
+
+Controller tests:
+
+Use controller-runtime envtest where appropriate.
+
+Test at least:
+
+1. Creating AIWorkload creates one Deployment and one Service.
+2. Reconciliation repeated multiple times creates no duplicates.
+3. Replica updates modify the Deployment.
+4. Image updates modify the Deployment pod template.
+5. GPU count and product updates modify the correct fields.
+6. Owned resource drift is repaired.
+7. Unrelated metadata is not needlessly removed.
+8. Status is not patched repeatedly when unchanged.
+9. Deleting AIWorkload allows owned resources to be garbage-collected in a real-cluster test.
+
+End-to-end tests:
+
+1. Cluster has one CPU worker and one fake GPU worker.
+2. Only the fake GPU worker advertises ai.dhiraj.io/gpu.
+3. The fake GPU worker advertises a capacity of two.
+4. The fake GPU worker has the required label and taint.
+5. An ordinary pod without the toleration schedules on the CPU worker.
+6. An AIWorkload with two one-GPU replicas reaches Running with 2/2 ready.
+7. Both AI pods run on the fake GPU worker.
+8. Each AI pod receives a fake device ID.
+9. Changing replicas from 2 to 3 leaves one pod Pending.
+10. AIWorkload reports CapacityBlocked and InsufficientGPU.
+11. Scaling from 3 to 1 releases capacity.
+12. Another AIWorkload can then consume the released capacity.
+13. Deleting an AIWorkload deletes its Deployment, Service, and pods.
+14. After deletion, the released fake GPU capacity can be used by another workload.
+15. Manually changing managed Deployment fields is corrected by reconciliation.
+16. Reapplying an unchanged CR remains stable.
+17. The mock inference service responds successfully.
+
+Use kubectl wait and condition-based polling rather than arbitrary long sleeps.
+
+Acceptance demonstration
+------------------------
+
+The final demo should support a flow similar to:
+
+make doctor
+make cluster-up
+make docker-build
+make minikube-load
+make install
+make deploy
+
+kubectl --context gpu-node-selector get nodes
+kubectl --context gpu-node-selector describe node <gpu-worker>
+
+kubectl --context gpu-node-selector apply \
+  -f config/samples/ai_v1alpha1_aiworkload.yaml
+
+kubectl --context gpu-node-selector \
+  -n ai-workloads get aiworkloads,pods,deployments,services -o wide
+
+Expected initial result:
+
+NAME         PHASE     DESIRED   READY
+mock-llama   Running   2         2
+
+Scale to three replicas:
+
+NAME         PHASE             DESIRED   READY   PENDING
+mock-llama   CapacityBlocked   3         2       1
+
+The pending pod’s events should show insufficient ai.dhiraj.io/gpu.
+
+Scale down, verify capacity is released, and then delete the AIWorkload. Verify all owned resources are removed.
+
+Also demonstrate:
+
+- Ordinary workloads remain off the dedicated GPU worker.
+- Deployment drift is repaired.
+- The mock service reports its assigned FAKE_GPU_DEVICES value.
+
+Scope exclusions
+----------------
+
+Do not add these to the MVP:
+
+- Real NVIDIA hardware
+- CUDA installation
+- NVIDIA GPU Operator
+- NVIDIA device plugin
+- A real LLM
+- Calls to OpenAI or other model APIs
+- Model training
+- Telemetry
+- Prometheus
+- Grafana
+- OpenTelemetry
+- Autoscaling
+- HPA
+- Queue-depth scaling
+- A custom scheduler
+- Scheduler plugins
+- Scheduler extenders
+- Dynamic Resource Allocation
+- Multi-cluster management
+- Istio
+- ArgoCD
+- MCP
+- Helm packaging unless needed later
+- GPU sharing, time slicing, MIG, or fractional GPUs
+
+Document these as future extensions rather than implementing them.
+
+Code-quality expectations
+-------------------------
+
+- Prefer small, focused packages.
+- Keep reconciliation readable rather than placing all behavior in one method.
+- Separate desired-state construction from API mutation.
+- Use table-driven tests where useful.
+- Use typed constants for labels, taints, resource names, condition types, phases, and reasons.
+- Avoid global mutable state.
+- Use context propagation.
+- Return errors with useful context.
+- Keep comments focused on design reasons.
+- Run gofmt, go test, go vet, and race tests where practical.
+- Pin or record tool and dependency versions.
+- Keep generated Kubebuilder files reproducible.
+- Add architecture and reconciliation documentation.
+- Record important design choices as ADRs.
+
+Required documentation
+----------------------
+
+Create or plan for:
+
+- README.md
+- docs/architecture.md
+- docs/reconciliation.md
+- docs/fake-device-plugin.md
+- docs/local-cluster.md
+- docs/status-and-failures.md
+- docs/demo.md
+- docs/troubleshooting.md
+- docs/adr/0001-default-scheduler.md
+- docs/adr/0002-fake-device-plugin.md
+- docs/adr/0003-gpu-node-isolation.md
+
+Explain clearly:
+
+- Why the default scheduler remains responsible for placement.
+- Why the operator must not set nodeName.
+- Why labels alone are insufficient for capacity accounting.
+- Why taints are needed to keep ordinary workloads off GPU nodes.
+- Why the fake device plugin is better than permanently patching Node status.
+- Why OwnerReferences are sufficient without a finalizer.
+- How reconciliation remains idempotent.
+- How fake GPU allocation differs from real CUDA execution.
+
+Planning request
+----------------
+
+First inspect:
+
+1. The empty target directory.
+2. Any applicable AGENTS.md or repository instructions.
+3. The reference ProjectMsgQueue scripts and Makefile.
+4. Installed Go, Docker, Colima, Minikube, kubectl, Kubebuilder, and architecture.
+5. Existing Colima profiles, Docker contexts, Minikube profiles, and Kubernetes contexts using read-only commands.
+6. Available host CPU, memory, and disk sufficiently to recommend safe defaults.
+
+Then produce a day-by-day plan. A reasonable starting breakdown is:
+
+- Day 1: repository bootstrap, tools, architecture, and local cluster design.
+- Day 2: multi-node cluster, labels, taints, and manual extended-resource scheduling proof.
+- Day 3: Kubebuilder API and CRD with validation/defaulting.
+- Day 4: Deployment and Service desired-state builders.
+- Day 5: idempotent reconciliation, ownership, updates, and drift correction.
+- Day 6: status conditions and scheduling-failure diagnosis.
+- Day 7: fake GPU device plugin.
+- Day 8: integrate plugin, operator, and mock workload.
+- Day 9: end-to-end tests and failure/recovery scenarios.
+- Day 10: demo automation, documentation, cleanup, and final verification.
+
+Adjust the number of days if inspection shows a better decomposition, but keep each day independently demonstrable.
+
+For each day, provide:
+
+- Objective.
+- Files and packages to create or modify.
+- Implementation steps.
+- Tests.
+- Commands to verify.
+- Expected observable result.
+- Exit criteria.
+- Risks or decisions.
+- What should be committed at that checkpoint.
+
+At the end of the plan, provide:
+
+- Final repository structure.
+- Dependency choices.
+- API contract.
+- Reconciliation pseudocode.
+- Fake-device-plugin protocol flow.
+- Status transition table.
+- Test matrix.
+- Exact final demo sequence.
+- Explicit assumptions requiring my confirmation.
+
+Do not begin writing implementation code until I approve the plan.

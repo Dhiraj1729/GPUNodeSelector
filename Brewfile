@@ -1,0 +1,11 @@
+# Tool inventory; make tools installs only missing commands (no bundle upgrade).
+brew "go"
+brew "git"
+brew "colima"
+brew "docker"
+brew "docker-buildx"
+brew "minikube"
+brew "kubernetes-cli"
+brew "kubebuilder"
+brew "jq"
+brew "ripgrep"
