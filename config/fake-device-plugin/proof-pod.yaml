@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: proof
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  nodeSelector:
+    ai.dhiraj.io/gpu-node: "true"
+    ai.dhiraj.io/gpu-product: A100
+  tolerations:
+  - key: ai.dhiraj.io/gpu
+    operator: Equal
+    value: "true"
+    effect: NoSchedule
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: inference
+    image: gpu-node-selector/mock-inference:dev
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8080
+    resources:
+      requests:
+        ai.dhiraj.io/gpu: "1"
+      limits:
+        ai.dhiraj.io/gpu: "1"
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8080
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: [ALL]

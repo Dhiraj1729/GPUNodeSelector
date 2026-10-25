@@ -1,5 +1,31 @@
 # Local cluster design
 
+## Day 2 verification
+
+Run these from the repository root. Startup creates an ownership record under work/day-02; keep it for safe reuse and destruction. Existing profiles without this record are rejected rather than adopted. The proof generates standalone Pod manifests, saves exhaustion/placement/events evidence, and automatically removes its namespace and manual capacity on success or failure where the API remains reachable.
+
+```sh
+make doctor
+make cluster-up
+make cluster-configure
+make cluster-configure # rerun check
+make scheduling-proof
+make scheduling-proof-cleanup # retry if automatic cleanup failed
+kubectl --context gpu-node-selector get nodes -o wide
+make cluster-down
+make cluster-up # restart preserved state
+make cluster-configure
+make cluster-destroy CONFIRM=gpu-node-selector
+make cluster-up # fresh rebuild
+make cluster-configure
+make scheduling-proof
+make cluster-down
+```
+
+Destroy permanently deletes this project's cluster and VM data. Source, documentation and work evidence are retained. Contexts are removed only after their project identity is checked; ambiguous state causes refusal. Missing confirmation fails before deletion. If cleanup fails, inspect the saved evidence and retry cleanup before continuing. Runtime proof requires image downloads; override PROOF_IMAGE with a reachable multiarchitecture pause image if necessary. A failed download is not scheduling success.
+
+Verification expectations: three Ready nodes; one CPU and one GPU worker; two GPU pods Running and one Unschedulable with Insufficient ai.dhiraj.io/gpu; deleting a running pod admits the previously pending pod; GPU-selected pod without toleration stays unscheduled. Cleanup removes the namespace and manual capacity/allocatable. Stop preserves state; destroy removes both profile directories, and fresh rebuild must repeat the proof.
+
 No Colima VM or Minikube cluster was created or started on Day 1. These are Day 2 settings and safeguards.
 
 | Setting | Value |

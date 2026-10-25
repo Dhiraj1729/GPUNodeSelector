@@ -79,12 +79,12 @@ Namespaced `ai.dhiraj.io/v1alpha1`, kind `AIWorkload`, plural `aiworkloads`, sta
 | gpu.product | string | required, nonempty valid Kubernetes label value, bounded to 63 characters |
 | gpu.count | int32 | required integer >=1; no cap at cluster capacity |
 | resources | optional struct | absence means omit CPU/memory requests |
-| resources.cpu | *resource.Quantity | optional valid nonnegative quantity; validate Kubernetes CPU precision constraints |
+| resources.cpu | *resource.Quantity | optional nonnegative decimal cores (up to 3 fractional digits) or integer millicores; exponent/binary/fractional-milli forms rejected in v1alpha1 |
 | resources.memory | *resource.Quantity | optional valid nonnegative quantity |
 
 Use supported CRD schema markers/CEL for quantity validation and prove server admission behavior with envtest. Do not merely rely on fake-client Go unmarshalling. If installed CRD validation cannot enforce a desired semantic constraint, record and resolve it before marking Day 3 complete. CPU/memory translate to requests only; no invented CPU/memory limits. GPU count translates to integer limit and equal request (Kubernetes can default the request from the limit, but explicit equality simplifies inspection).
 
-Canonical sample name `mock-llama`; Deployment and Service names match the CR. Labels use the name and a separate CR UID identity; validate the CR name can safely fit chosen label conventions, or use a deterministic bounded identity label and mapping annotation. Avoid a latent mismatch between Kubernetes object name and label length. Selector identity stays immutable throughout the CR's lifetime.
+Canonical sample name `mock-llama`; valid short DNS-1035 child names match the CR. Day 4 derives a bounded prefixed/hash name for other CR names and stores the full CR name in an annotation. Selectors use a bounded UID hash; identity stays immutable throughout the CR's lifetime. Future status DNS must use workload.ChildName rather than blindly copying a long CR name.
 
 Pod template: product selector `ai.dhiraj.io/gpu-product=A100`, GPU-node label selector `ai.dhiraj.io/gpu-node=true`, Equal toleration key `ai.dhiraj.io/gpu`, value `true`, effect `NoSchedule`. No nodeName, manual binding, capacity-based replica capping or node writes. The scheduler chooses the node. Labels describe eligibility; extended-resource requests account for capacity; taints exclude ordinary pods without tolerations.
 
@@ -176,6 +176,8 @@ Evaluate all conditions; phase uses the first matching row. GPU-capacity classif
 | Current deployment revision converged, desired replicas available | Running | Available | Ready=True; Scheduled=True; Progressing=False; CapacityAvailable=True/RequestsSatisfied |
 
 Use PodScheduled=False/Unschedulable and container waiting reasons first. Scheduler messages are needed to distinguish extended GPU shortage from selector/taint/CPU-memory constraints. Preserve combined evidence, isolate parsing, and test unknown messages. `CapacityAvailable=True` means the current requested workload is satisfied; it does not advertise unused GPUs. Do not classify an unsatisfiable request for 3 GPUs on a 2-GPU node as a controller error: scheduler leaves it Pending and status explains it.
+
+Day 6 implementation refinement: stale desired/Deployment observations gate all child diagnosis before the table is evaluated. Generic selector failures report NodeSelectorMismatch, not GPUProductMismatch, because the scheduler does not identify the specific label. Taints report UntoleratedTaint. Running additionally requires current owned Pods to be scheduled and ready, with no active old revision or terminating Pods. Mixed GPU and other scheduler clauses remain Pending/MultipleSchedulingConstraints. Full implemented semantics and evidence limitations are in docs/status-and-failures.md.
 
 ## Test matrix and evidence
 

@@ -1,0 +1,16 @@
+cliVersion: 4.16.0
+domain: dhiraj.io
+layout:
+- go.kubebuilder.io/v4
+projectName: gpu-node-selector
+repo: github.com/Dhiraj1729/GpuNodeSelector
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: dhiraj.io
+  group: ai
+  kind: AIWorkload
+  path: github.com/Dhiraj1729/GpuNodeSelector/api/v1alpha1
+  version: v1alpha1
+version: "3"

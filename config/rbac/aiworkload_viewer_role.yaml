@@ -1,0 +1,11 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aiworkload-viewer
+rules:
+- apiGroups: [ai.dhiraj.io]
+  resources: [aiworkloads]
+  verbs: [get, list, watch]
+- apiGroups: [ai.dhiraj.io]
+  resources: [aiworkloads/status]
+  verbs: [get]

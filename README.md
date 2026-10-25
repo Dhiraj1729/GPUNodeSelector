@@ -1,8 +1,10 @@
 # GPU Node Selector
 
+Day 2 lifecycle and scheduling-proof scripts are now available. See [verification steps](docs/local-cluster.md#day-2-verification). Runtime acceptance remains pending; the scripts have not yet demonstrated a complete successful cluster lifecycle.
+
 A Kubernetes AI workload control-plane project: an AIWorkload operator, a fake GPU device plugin, and a mock inference server running on three local Minikube nodes.
 
-**Status: Day 1 complete.** Git, client tooling, environment checks and architecture documentation are ready. No Colima VM or Minikube cluster has been started. Application implementation begins in later milestones.
+**Status: Day 8 integrated workload path implemented.** The in-cluster operator, fake plugin and mock inference server run together. Automated smoke verifies distinct devices, exhaustion with truthful mixed status, capacity reuse, HTTP/port changes and saturated image rollout. Start with [the Day 8 runbook](docs/demo.md). See also [plugin details](docs/fake-device-plugin.md), [status diagnostics](docs/status-and-failures.md) and [the API contract](docs/api.md).
 
 Start with [the ten-day implementation plan](docs/planning/implementation-plan.md). Each day is a milestone, not a fixed calendar date; allow extra time for environment setup and the device plugin.
 
@@ -17,7 +19,7 @@ To resume in a new chat, use this prompt, changing the day number:
 
 > Work in /Users/dhirajsriharsha/Preparation/GpuNodeSelector. Read README.md, docs/planning/project-context.md, docs/planning/progress.md, docs/planning/implementation-plan.md, docs/planning/technical-design.md, and docs/planning/days/day-01.md. Check applicable repository instructions and current changes. Verify that plan approval is recorded or explicitly provided in this chat. Implement only this day's approved scope, verify its exit criteria, and update the progress log and daily handoff with actual evidence and remaining blockers. Do not claim unrun tests passed. Do not modify ProjectMsgQueue or operate on unrelated clusters. Stop at the checkpoint unless I ask to continue.
 
-Available now: `make tools` installs missing prerequisites and `make doctor` checks client tools without requiring a cluster. Other commands in planning documents describe future targets. The original prompt is retained locally for context; review it before publishing the repository.
+Available now: tooling, cluster/API/build/test targets, `mock-image`, `mock-smoke`, `race`, local `run`, `docker-build`, `minikube-load`, `install`, `deploy`, `demo-smoke` and plugin helpers. Build/load covers all three images; deploy installs the in-cluster operator and plugin. Do not run a second local manager concurrently. Day 2 manual capacity proof must not run while the plugin is installed. Review the preserved original prompt before publishing the repository.
 
 ## Day 1 results
 

@@ -10,7 +10,7 @@
 
 ## Current authorization
 
-Overall plan and Day 1 implementation approved on 20 October 2026. Execute Day 1 without another routine approval, then stop at its handoff. Do not start Colima or Minikube. Colima CPU=6 and Minikube CPU=2 per node are fixed by the user. See progress.md for actual outcomes.
+Overall plan and Days 1–8 were explicitly approved in this chat. Day 8 integration passed native live smoke, regression and AMD64 cross-build checks; stop at its handoff. Colima CPU=6 and Minikube CPU=2 per node remain fixed. The project cluster is running with the operator and plugin in ai-system; temporary proof Pods/namespaces are gone. Day 9 requires user instruction. See progress.md for historical Day 2 lifecycle checks and docs/demo.md for the current runbook.
 
 ## Fixed boundaries
 
@@ -29,9 +29,9 @@ Overall plan and Day 1 implementation approved on 20 October 2026. Execute Day 1
 
 ## Planning findings and proposals
 
-ARM64 Mac, 10 CPUs, 16 GiB RAM, ~375 GiB free disk. Initially missing Go/container/Kubernetes commands were installed on Day 1. Profile inventory is now known; consult the handoff. Proposed VM 6 vCPUs/8 GiB/40 GiB, node limits 2 CPUs/2 GiB each nested within VM. Day 1 complete: exact installed versions and chosen scaffold pins are in docs/toolchain.md. No active profiles/contexts except Docker default.
+ARM64 Mac, 10 CPUs, 16 GiB RAM, ~375 GiB free disk at initial inspection. Initially missing tools were installed on Day 1. Project cluster is now provisioned and running: VM 6 vCPUs/8 GiB/40 GiB, three nodes at 2 CPUs/2 GiB each nested within VM. Exact toolchain pins are in docs/toolchain.md. The CRD and single in-cluster reconciler are installed. Day 8 smoke uses isolated generated ai-workloads-day8-* namespaces and cleans them on exit. Do not run a second local manager concurrently.
 
-Proposed rollout policy maxSurge=0/maxUnavailable=1. CPU/memory spec means requests. Mock implemented Day 4. Device Allocate duplicate validation is per request, never a permanent allocation ledger. envtest cannot prove scheduling or GC. Full proposed decisions and confirmation items live in the main plan.
+Implemented rollout policy maxSurge=0/maxUnavailable=1. CPU/memory spec means requests. Day 3 CPU wire validation accepts decimal cores (up to three fractional digits) and integer millicores; memory accepts native nonnegative quantities. See docs/api.md. Mock was completed in Day 4. Day 6 reports generation-aware readiness and conservative scheduling diagnosis; see docs/status-and-failures.md. Device Allocate duplicate validation is per request, never a permanent allocation ledger. envtest cannot prove scheduling or GC. Full proposed decisions and confirmation items live in the main plan.
 
 ## End-of-day procedure
 

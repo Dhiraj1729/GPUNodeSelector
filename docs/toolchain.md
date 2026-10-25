@@ -1,6 +1,10 @@
 # Day 1 toolchain record
 
+Day 3 update (24 October 2026): recorded pins are now implemented in go.mod/go.sum and versioned Makefile tool paths. controller-gen v0.22.0 and setup-envtest v0.25.0 were installed locally under bin; Kubernetes 1.37.0 darwin/arm64 envtest assets were downloaded and passed admission tests. Standalone Kustomize is not needed for the current CRD-only installation; the minimal overlay can be rendered with kubectl's embedded v5.8.1. Go builds default to CGO_ENABLED=0 after a host SDK/linker mismatch; pure-Go build/vet/test passed. No host tools were upgraded.
+
 Observed on 20 October 2026, darwin/arm64. Exact command output is retained in ignored `work/day-01/doctor-final.txt`.
+
+Day 7 update, 25 October 2026: added k8s.io/kubelet v0.37.0 and its selected gRPC v1.82.1 dependency; device-plugin v1beta1 registration/allocation passed against the existing Kubernetes v1.37.0 cluster. Native linux/arm64 mock/plugin images built with Go 1.27.1. Runtime security (UID 0, no capabilities/privileged mode for plugin) and restart proof passed. Exact evidence is in work/day-07/. The table below preserves the historical Day 1 inventory.
 
 | Component | Observed / selected version | State |
 | --- | --- | --- |
