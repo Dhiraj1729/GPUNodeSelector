@@ -6,7 +6,7 @@ bash "$ROOT/scripts/images.sh" verify
 bash "$ROOT/scripts/plugin.sh" verify
 k -n ai-system rollout status deployment/aiworkload-operator --timeout=180s
 run="$(date -u +%Y%m%dT%H%M%SZ)-$$"
-out="$ROOT/work/day-08/$run"
+out="${DEMO_EVIDENCE_ROOT:-$ROOT/work/day-08}/$run"
 mkdir -p "$out"
 ns="$(printf '%s' '{"apiVersion":"v1","kind":"Namespace","metadata":{"generateName":"ai-workloads-day8-"}}' | k create -f - -o jsonpath='{.metadata.name}')"
 snapshot() {

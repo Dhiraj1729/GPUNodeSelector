@@ -53,7 +53,7 @@ Expected verification:
 - The temporary server-named proof namespace is deleted, including on failure; evidence is retained in work/day-07/.
 - Restarting the DaemonSet restores registration; rerunning verification proves a new allocation works.
 
-Capacity/allocatable remain 2 while one device is occupied. They are not free-device counters. Plugin restart and real kubelet restart are different operations: the automated Unix-socket harness simulates kubelet socket recreation; Day 7 live restart uses the DaemonSet, not a kubelet service restart.
+Capacity/allocatable remain 2 while one device is occupied. They are not free-device counters. Plugin restart and real kubelet restart are different operations: the Unix-socket harness simulates socket recreation; Day 7 live restart uses the DaemonSet. Day 9 additionally verified a real GPU-worker kubelet restart through the guarded `make e2e-recovery` target, including distinct new/existing allocations and capacity reuse.
 
 Inspect state and logs:
 

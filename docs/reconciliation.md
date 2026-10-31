@@ -15,7 +15,7 @@ Day 4 implements `workload.Deployment` and `workload.Service` in internal/worklo
 | CPU/memory | Optional requests, deep-copied; no CPU/memory limits invented |
 | CR identity | Controller OwnerReference containing CR name, UID, kind and API version |
 
-Pod nodeName is empty and no custom scheduler is selected. Fake device environment variables are not fabricated in the template; the future plugin will supply them. Probes target named port `http` at `/healthz` and `/readyz`. The container is non-root UID/GID 65532, with all capabilities dropped, no privilege escalation, a read-only root filesystem and RuntimeDefault seccomp. Service-account token mounting is disabled. Graceful Pod termination allows ten seconds, exceeding the mock server's five-second drain deadline.
+Pod nodeName is empty and no custom scheduler is selected. Device environment variables come from the plugin's Allocate response through kubelet. Probes target named port `http` at `/healthz` and `/readyz`. The container is non-root UID/GID 65532, with all capabilities dropped, no privilege escalation, a read-only root filesystem and RuntimeDefault seccomp. Service-account token mounting is disabled. Graceful Pod termination allows ten seconds, exceeding the mock server's five-second drain deadline.
 
 RollingUpdate uses maxSurge=0 and maxUnavailable=1. This permits replacement when both GPUs are occupied by removing an old replica first. Single-replica updates can interrupt service. Day 8 verified saturated rollout: the replacement can be Pending while the old Pod terminates, then runs after capacity release. See docs/demo.md.
 
@@ -23,7 +23,7 @@ RollingUpdate uses maxSurge=0 and maxUnavailable=1. This permits replacement whe
 
 Valid short DNS-1035 CR names, including mock-llama, are retained as child names. Names unsuitable for Services (long names, names containing dots, or names beginning with digits) become an `ai-` prefix, bounded readable segment and hash of the complete name. Both child types use the same derived name. This accommodates the Day 3 API's longer object names without introducing a breaking name restriction. Future status endpoint construction must use this derived Service name.
 
-Selectors use a bounded SHA-256 digest of the CR UID in ai.dhiraj.io/workload-id. Full CR name is stored in ai.dhiraj.io/workload-name annotations rather than a potentially invalid label. Deployment selector, Pod labels and Service selector match. Spec updates never change selector identity; replacing the CR with a new UID produces a new identity. A future Pod mapping watch must resolve the full name and validate current ownership/UID, not trust the annotation alone.
+Selectors use a bounded SHA-256 digest of the CR UID in ai.dhiraj.io/workload-id. Full CR name is stored in ai.dhiraj.io/workload-name annotations rather than a potentially invalid label. Deployment selector, Pod labels and Service selector match. Spec updates never change selector identity; replacing the CR with a new UID produces a new identity. The Pod watch validates the full current ownership chain and UID, not the annotation alone.
 
 Builders reject nil input, invalid name/namespace, missing persisted UID, missing image, invalid GPU count/product, negative replicas, invalid port, negative requests and fractional-millicore CPU requests. API defaulting remains authoritative; local pointer fallbacks exist for independently constructed objects. Quantity validation here is numeric because native Quantity parsing normalizes wire representations.
 

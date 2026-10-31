@@ -1,4 +1,8 @@
-# Day 8 integrated local demonstration
+# Demonstration and verification
+
+The final `make demo` runs the complete baseline acceptance walkthrough, including the Day 8 integration flow below and the Day 9 drift/stability, isolation, garbage collection/reuse, collision and failure scenarios. It cleans its generated namespaces and leaves the platform installed. `make demo-smoke` remains the shorter Day 8 subset. Both require no competing GPU consumers. `make verify` combines format/vet/unit/build/generation/envtest/race/shell checks, image/security/RBAC audit and the complete baseline. It fails if prerequisites are missing; it never silently skips cluster tests. Recovery restarts remain the separate explicit `make e2e-recovery` target.
+
+Final demo evidence is under work/day-10/demo; verification evidence is under work/day-10/verify. Detailed acceptance mapping is in tests/e2e/README.md. The planned individual demo-* helpers were consolidated into the tested E2E runner to avoid maintaining duplicate assertions; the public workflow is make demo, make demo-smoke and make e2e-recovery.
 
 The operator runs in ai-system using its ServiceAccount and generated RBAC. It creates Deployment/Service children; the default scheduler selects the GPU worker; kubelet allocates plugin devices and injects FAKE_GPU_DEVICES; the CPU-only mock reports that identity through HTTP. No manual Node capacity patch is used.
 
@@ -13,6 +17,8 @@ make docker-build minikube-load install deploy
 make demo-smoke
 make plugin-verify
 ```
+
+For final acceptance use `make verify` and `make demo`. Stop with `make cluster-down`; restart with `make cluster-up`, `make deploy`, `make demo`. For permanent removal use `make cluster-destroy CONFIRM=gpu-node-selector`, which deletes Minikube, the Colima VM and its runtime data disk. Source and evidence remain. See docs/local-cluster.md for lifecycle guarantees and the Day 10 handoff for actual execution evidence.
 
 For a fresh cluster, plugin-deploy requires GPU capacity to be absent before the plugin registers. For an existing Day 7 cluster, it verifies the project-owned DaemonSet and reuses it. Do not run the Day 2 manual-capacity proof with the plugin deployed. If a prior manual diagnostic resource blocks first deployment, follow the guarded removal procedure in docs/fake-device-plugin.md.
 

@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Day 1 design accepted; runtime components are implemented in later milestones.
+Status: operator, fake plugin and mock server implemented; native integration and recovery verified. Final lifecycle evidence is in the Day 10 handoff.
 
 Go module: `github.com/Dhiraj1729/GpuNodeSelector`. This is the chosen local module identity; no remote repository has been created or published.
 
@@ -29,4 +29,4 @@ The MVP excludes real GPU drivers, CUDA, real models, telemetry, autoscaling, cu
 
 ## Toolchain
 
-See [the Day 1 toolchain record](toolchain.md). No application `go.mod` or API scaffold has been added to source yet. A disposable scaffold under ignored `work/day-01/` was used only to inspect the installed generator's dependency defaults.
+See [the toolchain record](toolchain.md). Dependencies are pinned in go.mod/go.sum; generator and envtest versions are pinned in Makefile. Native ARM64 runtime and AMD64 cross-builds were tested. The README contains architecture/topology diagrams and the reasons behind each design choice.

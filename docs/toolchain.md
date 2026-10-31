@@ -1,4 +1,8 @@
-# Day 1 toolchain record
+# Toolchain and version evidence
+
+Current implementation: Go dependencies are locked in go.mod/go.sum; controller-gen v0.22.0, setup-envtest v0.25.0 and Kubernetes envtest 1.37.0 are pinned in Makefile. Images build with golang:1.27.1 and scratch runtime stages. Kubernetes server/client 1.37, controller-runtime 0.25 and Kubernetes libraries 0.37 were compiled and exercised together. kubectl's embedded Kustomize renders the full platform overlays; a standalone Kustomize installation is unnecessary.
+
+Day 10 `make verify` records fresh client versions through doctor, compiles all binaries, verifies generation, runs envtest/race and checks live image architecture/user/digest plus RBAC. Native runtime is ARM64; Day 8 AMD64 cross-builds are not AMD64 runtime validation. Homebrew tools are not bottle-locked and are never upgraded by this project when already installed. Exact image builder tags are pinned, but remote tag digests are not immutable supply-chain locks. Current evidence: work/day-10/verify.log and audit/; the table below is explicitly the historical initial inventory.
 
 Day 3 update (24 October 2026): recorded pins are now implemented in go.mod/go.sum and versioned Makefile tool paths. controller-gen v0.22.0 and setup-envtest v0.25.0 were installed locally under bin; Kubernetes 1.37.0 darwin/arm64 envtest assets were downloaded and passed admission tests. Standalone Kustomize is not needed for the current CRD-only installation; the minimal overlay can be rendered with kubectl's embedded v5.8.1. Go builds default to CGO_ENABLED=0 after a host SDK/linker mismatch; pure-Go build/vet/test passed. No host tools were upgraded.
 

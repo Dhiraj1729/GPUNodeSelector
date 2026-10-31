@@ -201,7 +201,9 @@ Day 6 implementation refinement: stale desired/Deployment observations gate all 
 
 Save command logs, versions, CR JSON, deployments, Pods, nodes, events and relevant logs under `work/day-NN/` or timestamped `work/e2e/`. Avoid kubeconfig/credentials. Record actual commands/exit codes in handoff docs. `make verify` should compose format check, vet, unit/race, generation reproducibility, envtest and e2e with explicit prerequisites; it must fail or clearly report a missing prerequisite, never silently skip and call the whole suite passed.
 
-## Exact final demo command contract
+## Original proposed demo command contract
+
+Day 10 implementation refinement: the individual demo-* helpers below are preserved as the original design, not runnable commands. Their acceptance assertions are implemented by the shared Day 8/9 runner, exposed as `make demo` (full baseline), `make demo-smoke` (integration subset), `make verify` (all checks plus baseline) and `make e2e-recovery` (explicit restarts). Current commands are in README.md and docs/demo.md. Mixed scheduler evidence retains the Day 6/8 classification refinement above.
 
 These targets/scripts will be implemented by Days 8–10. They do not exist yet. Default profile/namespace values are assumed below. Demo helpers use UID-aware selectors, bounded polling, unique run IDs, and diagnostic collection; they must refuse unrelated/preexisting fixture ownership.
 

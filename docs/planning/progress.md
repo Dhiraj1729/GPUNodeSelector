@@ -6,25 +6,31 @@
 - Implementation approval: **Day 1 on 20 October, Day 2 on 22 October, and Days 3–6 on 24 October 2026**.
 - Day 7 explicitly approved on 25 October 2026.
 - Day 8 explicitly approved on 25 October 2026, including the supplied integration prompt.
-- Approved current scope: Day 8 integrated images, deployment and live smoke proof, then stop at handoff. Fixed CPU settings: Colima 6 vCPUs; Minikube 2 vCPUs per node.
-- Current next step: review the completed Day 8 handoff. Day 9 requires user instruction.
+- Day 9 explicitly approved on 29 October 2026: implement and test the acceptance/recovery plan.
+- Day 10 explicitly approved on 29 October 2026, including clear documentation/README diagrams and complete project cluster/VM/data cleanup.
+- Approved current scope: final verification/demo, lifecycle and fresh provisioning tests, then project-only destruction and final handoff. Fixed CPU settings: Colima 6 vCPUs; Minikube 2 vCPUs per node.
+- Current next step: review the completed project and Day 10 handoff; all ten milestones passed. No additional implementation authorized.
 
 ## Completion tracker
 
 | Day | Milestone | State | Evidence / handoff |
 | --- | --- | --- | --- |
 | 01 | Tooling and architecture | Complete | [Day 01](days/day-01.md) |
-| 02 | Cluster and scheduling proof | Scripts ready; runtime acceptance pending | [Day 02](days/day-02.md) |
+| 02 | Cluster and scheduling proof | Complete; lifecycle gates closed on Day 10 | [Day 02](days/day-02.md) |
 | 03 | API and validation | Complete | [Day 03](days/day-03.md) |
 | 04 | Builders and mock server | Complete | [Day 04](days/day-04.md) |
 | 05 | Reconciliation and drift | Complete | [Day 05](days/day-05.md) |
 | 06 | Status and diagnostics | Complete | [Day 06](days/day-06.md) |
 | 07 | Fake device plugin | Complete | [Day 07](days/day-07.md) |
 | 08 | Integrated workload path | Complete | [Day 08](days/day-08.md) |
-| 09 | End-to-end and recovery | Not started | [Day 09](days/day-09.md) |
-| 10 | Demo/docs/verification | Not started | [Day 10](days/day-10.md) |
+| 09 | End-to-end and recovery | Complete | [Day 09](days/day-09.md) |
+| 10 | Demo/docs/verification | Complete | [Day 10](days/day-10.md) |
 
 ## Planning work completed
+
+Day 10 completed on 30 October 2026: public verify/demo/lifecycle targets, runtime security/RBAC audit, complete guarded Minikube/Colima data-disk cleanup, explanatory README diagrams, ADR 0004 and updated guides. Full verify, source-snapshot checks, demos before/after stop/start, persistence, fresh provisioning/scheduling proof/build/deploy/audit/demo, running/stopped destruction and repeat cleanup passed. Historical Day 2 gates are now closed. Final project cluster/VM/runtime disk and contexts are absent; source/evidence retained and no project VM CPU/RAM use remains. Stale-context handling fixes and interrupted attempts are recorded in [Day 10](days/day-10.md). All milestones complete; changes remain uncommitted.
+
+Day 9 completed on 29 October 2026: guarded acceptance/recovery scripts, original 17-case coverage with approved mixed-status semantics, real GC/reuse, drift/stability, child recreation, collisions, zero replicas and failure/update checks. Unit/envtest/race passed. Two consecutive baseline runs passed; operator/plugin and actual GPU-worker kubelet restart recovery passed, including distinct allocation and reuse. Initial harness generation-scope and SSH line-ending failures were fixed and retained in evidence. All generated namespaces cleaned; platform and nodes healthy, cluster left running. No Go implementation changes required. Evidence, exact commands and limitations: [Day 09](days/day-09.md). Day 10 not started.
 
 Day 8 completed on 25 October 2026: three native images, verified all-node image loading, guarded in-cluster operator/RBAC deployment, and repeatable integrated smoke. Three live smoke runs passed, including final config-digest verification, distinct device IDs, 2→3→1 replicas, capacity reuse, HTTP/port changes and saturated image rollout. Scheduler evidence correctly produced Pending/MultipleSchedulingConstraints. Full regression and all three AMD64 cross-builds passed; AMD64 runtime was not tested. Repeated deployment preserved the operator Pod UID. Temporary namespaces were removed; operator/plugin remain running. Resolved failures and evidence: [Day 08](days/day-08.md). No Day 9 work or cluster destruction performed.
 

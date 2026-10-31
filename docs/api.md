@@ -22,9 +22,9 @@ CPU and memory are native `resource.Quantity` pointers. Their wire schema accept
 
 CPU syntax is deliberately narrower than all `resource.Quantity` encodings to express exact millicore precision without floating-point CEL arithmetic. Exponent notation (`1e-3`), binary CPU suffixes, fractional millicores (`0.1m`), and more than three decimal places are rejected. Use `1m` or `"0.001"` for a millicore. This restriction is applied to raw API input and documented rather than relying on Go deserialization. Memory uses the native quantity pattern plus CEL parsing and comparison against zero. Both allow zero; neither introduces a limit or a capacity-based maximum.
 
-The sample at `config/samples/ai_v1alpha1_aiworkload.yaml` uses namespace `ai-workloads`; create that namespace separately if applying it manually. Its image is a future local image and is not needed for Day 3 API acceptance.
+The sample at `config/samples/ai_v1alpha1_aiworkload.yaml` uses namespace `ai-workloads`; create that namespace separately if applying it manually. Build/load its local mock image and deploy the platform first, following README.md.
 
-CR names retain Kubernetes object-name validation. No 63-character name limit was added solely for future labels. Day 4 builders must use bounded identity labels (for example a UID) and must not blindly copy long CR names into label values.
+CR names retain Kubernetes object-name validation. Builders use bounded UID-hash identity labels and derive valid child names; long CR names are stored in annotations, not copied into label values.
 
 ## Status
 
@@ -32,7 +32,7 @@ Status is a separate subresource. Creation and ordinary spec updates cannot set 
 
 Fields: `observedGeneration`, `phase`, `desiredReplicas`, `updatedReplicas`, `readyReplicas`, `availableReplicas`, `pendingReplicas`, `endpoint`, and `conditions`. Generation and replica counters are nonnegative. Allowed phases: Pending, Provisioning, Running, Degraded, CapacityBlocked, Failed.
 
-Conditions are `metav1.Condition` objects with list-map semantics keyed by `type`. Constants define Ready, Progressing, Scheduled and CapacityAvailable; reasons and status derivation are added when their behavior is implemented. Conditions retain the conventional observedGeneration, reason, message and lastTransitionTime fields. Status is initially empty because no reconciler computes it yet. Printer columns show phase, requested replicas, ready and pending counts; requested replicas comes from spec, so it is visible before reconciliation.
+Conditions are `metav1.Condition` objects with list-map semantics keyed by `type`: Ready, Progressing, Scheduled and CapacityAvailable. The reconciler derives them from current-generation Deployment and owned Pod observations; see status-and-failures.md. Conditions include observedGeneration, reason, message and lastTransitionTime. Status can initially be empty before the first reconciliation. Printer columns show phase, requested replicas, ready and pending counts; requested replicas comes from spec, so it is visible before reconciliation.
 
 ## Reproduce the verification
 

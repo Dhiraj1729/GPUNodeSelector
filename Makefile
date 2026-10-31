@@ -10,6 +10,8 @@ help:
 	@echo 'Day 5: run (guarded local manager; uses project context), envtest (reconciliation checks)'
 	@echo 'Day 7: docker-build minikube-load plugin-deploy plugin-verify plugin-restart'
 	@echo 'Day 8: deploy demo-smoke (all three images; in-cluster operator)'
+	@echo 'Day 9: e2e (baseline), e2e-recovery (operator/plugin/GPU-node kubelet restart)'
+	@echo 'Final: verify (all checks + E2E), demo (full acceptance walkthrough), cluster-down (stop), cluster-destroy CONFIRM=gpu-node-selector (delete VM and data)'
 tools:
 	/bin/bash scripts/install-tools.sh
 doctor:
@@ -95,3 +97,22 @@ deploy: manifests
 	/bin/bash scripts/deploy.sh
 demo-smoke:
 	/bin/bash scripts/demo.sh
+
+.PHONY: e2e e2e-recovery
+e2e:
+	/bin/bash scripts/e2e.sh baseline
+e2e-recovery:
+	/bin/bash scripts/e2e.sh recovery
+
+.PHONY: verify demo fmt-check shell-test lifecycle-check
+lifecycle-check:
+	/bin/bash scripts/lifecycle-proof.sh
+verify:
+	/bin/bash scripts/verify.sh
+demo:
+	E2E_EVIDENCE_ROOT="$(CURDIR)/work/day-10/demo" /bin/bash scripts/e2e.sh baseline
+fmt-check:
+	@test -z "$$(gofmt -l api cmd internal tests)" || { gofmt -l api cmd internal tests; echo 'FAIL: run make fmt'; exit 1; }
+shell-test:
+	@for file in scripts/*.sh scripts/lib/*.sh tests/e2e/*.sh; do bash -n "$$file" || exit; done
+	@for file in scripts/test-*.sh; do bash "$$file" || exit; done
