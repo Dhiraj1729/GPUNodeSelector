@@ -2,6 +2,7 @@
 set -euo pipefail
 source "$(dirname "$0")/lib/environment.sh"
 topology
+[[ "$(k -n ai-system get deployment aiworkload-operator --ignore-not-found -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}')" != Helm ]] || fail 'Platform is Helm-managed; use make helm-install.'
 bash "$ROOT/scripts/images.sh" verify
 mkdir -p "$ROOT/work/day-08"
 rendered="$ROOT/work/day-08/platform.yaml"

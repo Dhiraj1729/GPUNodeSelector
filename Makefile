@@ -3,15 +3,10 @@ SHELL := /bin/bash
 
 .PHONY: help tools doctor
 help:
-	@echo 'Day 1: tools (install missing prerequisites), doctor (client checks; no cluster required)'
-	@echo 'Day 2: cluster-up cluster-configure scheduling-proof scheduling-proof-cleanup cluster-down cluster-destroy CONFIRM=gpu-node-selector'
-	@echo 'Day 3: generate manifests fmt vet test envtest build install api-smoke'
-	@echo 'Day 4: mock-image mock-smoke race (requires a working C toolchain)'
-	@echo 'Day 5: run (guarded local manager; uses project context), envtest (reconciliation checks)'
-	@echo 'Day 7: docker-build minikube-load plugin-deploy plugin-verify plugin-restart'
-	@echo 'Day 8: deploy demo-smoke (all three images; in-cluster operator)'
-	@echo 'Day 9: e2e (baseline), e2e-recovery (operator/plugin/GPU-node kubelet restart)'
-	@echo 'Final: verify (all checks + E2E), demo (full acceptance walkthrough), cluster-down (stop), cluster-destroy CONFIRM=gpu-node-selector (delete VM and data)'
+	@echo 'Tools: tools doctor; cluster: cluster-up cluster-configure cluster-down cluster-destroy CONFIRM=gpu-node-selector'
+	@echo 'Images: docker-build minikube-load; Helm: helm-lint helm-test helm-install helm-aiworkloads helm-inference helm-status helm-verify'
+	@echo 'Cleanup: helm-aiworkloads-remove helm-uninstall; tests: verify demo e2e-recovery lifecycle-check'
+	@echo 'Development: generate manifests fmt vet test envtest build race check-generated; legacy deployment: install deploy'
 tools:
 	/bin/bash scripts/install-tools.sh
 doctor:
@@ -116,3 +111,14 @@ fmt-check:
 shell-test:
 	@for file in scripts/*.sh scripts/lib/*.sh tests/e2e/*.sh; do bash -n "$$file" || exit; done
 	@for file in scripts/test-*.sh; do bash "$$file" || exit; done
+
+# Helm owns platform objects and AIWorkloads; the operator owns inference children.
+.PHONY: helm-sync helm-lint helm-test helm-install helm-aiworkloads helm-inference helm-status helm-verify helm-aiworkloads-remove helm-uninstall
+helm-sync: manifests
+	cp config/crd/bases/ai.dhiraj.io_aiworkloads.yaml charts/gpu-node-selector/crds/ai.dhiraj.io_aiworkloads.yaml
+helm-lint helm-install helm-aiworkloads helm-status helm-verify helm-aiworkloads-remove helm-uninstall:
+	/bin/bash scripts/helm.sh $(@:helm-%=%)
+helm-inference: helm-aiworkloads
+helm-test: helm-lint
+	$(GO) test -count=1 ./tests/helm
+export HELM_VALUES

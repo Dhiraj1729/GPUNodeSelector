@@ -28,6 +28,7 @@ case "$action" in
     ;;
   deploy)
     topology
+    [[ "$(k -n ai-system get daemonset "$name" --ignore-not-found -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}')" != Helm ]] || fail 'Plugin is Helm-managed; use make helm-install.'
     k get pods -A -o json | jq -e 'all(.items[]; .metadata.namespace=="ai-system" and .metadata.labels.app=="fake-gpu-device-plugin" or all(.spec.volumes[]?; (.hostPath.path // "" | startswith("/var/lib/kubelet/device-plugins"))|not))' >/dev/null || fail 'Another device-plugin socket mount exists.'
     existing="$(k -n ai-system get daemonset "$name" --ignore-not-found -o name)"
     if [[ -n "$existing" ]]; then

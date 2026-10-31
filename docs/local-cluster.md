@@ -1,5 +1,8 @@
 # Local cluster lifecycle
 
+For Helm deployment of the platform and mock Llama AIWorkloads, see [Helm deployment](helm.md). Keep Helm and legacy kubectl ownership separate; remove persistent Helm workloads before isolated demos.
+
+
 All commands run from the repository root and target only the gpu-node-selector profiles. Keep work/day-02/managed-environment: it records ownership and is required for reuse and deletion. No global prune, `minikube delete --all`, or removal of shared caches is performed.
 
 ## Current setup, stop and complete cleanup

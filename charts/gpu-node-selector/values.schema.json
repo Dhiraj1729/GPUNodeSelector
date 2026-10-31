@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operator",
+    "plugin",
+    "imagePullPolicy"
+  ],
+  "properties": {
+    "operator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image",
+        "imageID"
+      ],
+      "properties": {
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "imageID": {
+          "type": "string"
+        }
+      }
+    },
+    "plugin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image",
+        "imageID",
+        "devices"
+      ],
+      "properties": {
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "imageID": {
+          "type": "string"
+        },
+        "devices": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        }
+      }
+    },
+    "imagePullPolicy": {
+      "type": "string",
+      "enum": [
+        "Always",
+        "IfNotPresent",
+        "Never"
+      ]
+    }
+  }
+}

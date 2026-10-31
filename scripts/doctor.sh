@@ -5,7 +5,7 @@ if [[ "${DOCTOR_PATH_ONLY:-0}" != 1 ]]; then
   export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 fi
 missing=0
-for tool in go git colima docker minikube kubectl kubebuilder jq rg make xcode-select; do
+for tool in go git colima docker minikube kubectl kubebuilder jq rg helm make xcode-select; do
   if command -v "$tool" >/dev/null 2>&1; then
     printf 'FOUND %s: %s\n' "$tool" "$(command -v "$tool")"
   else
@@ -34,6 +34,7 @@ check docker buildx version
 check minikube version
 check kubectl version --client=true
 check kubebuilder version
+check helm version --short
 check jq --version
 check rg --version
 check make --version

@@ -1,5 +1,8 @@
 # Demonstration and verification
 
+For Helm deployment of the platform and mock Llama AIWorkloads, see [Helm deployment](helm.md). Keep Helm and legacy kubectl ownership separate; remove persistent Helm workloads before isolated demos.
+
+
 The final `make demo` runs the complete baseline acceptance walkthrough, including the Day 8 integration flow below and the Day 9 drift/stability, isolation, garbage collection/reuse, collision and failure scenarios. It cleans its generated namespaces and leaves the platform installed. `make demo-smoke` remains the shorter Day 8 subset. Both require no competing GPU consumers. `make verify` combines format/vet/unit/build/generation/envtest/race/shell checks, image/security/RBAC audit and the complete baseline. It fails if prerequisites are missing; it never silently skips cluster tests. Recovery restarts remain the separate explicit `make e2e-recovery` target.
 
 Final demo evidence is under work/day-10/demo; verification evidence is under work/day-10/verify. Detailed acceptance mapping is in tests/e2e/README.md. The planned individual demo-* helpers were consolidated into the tested E2E runner to avoid maintaining duplicate assertions; the public workflow is make demo, make demo-smoke and make e2e-recovery.

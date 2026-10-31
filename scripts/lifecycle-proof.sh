@@ -32,7 +32,11 @@ bash "$ROOT/scripts/cluster-down.sh"
 colima list --json | tee "$out/stopped-vms.json" | jq -se --arg p "$PROFILE" 'any(.[]; .name==$p and .status=="Stopped")' >/dev/null
 [[ -f "$HOME/.minikube/profiles/$PROFILE/config.json" && -d "$HOME/.colima/_lima/_disks/colima-$PROFILE" ]] || fail 'Stop removed profile/data disk.'
 bash "$ROOT/scripts/cluster-up.sh"
-make -C "$ROOT" deploy
+if [[ "$(k -n ai-system get deployment aiworkload-operator -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}')" == Helm ]]; then
+  make -C "$ROOT" helm-install
+else
+  make -C "$ROOT" deploy
+fi
 k -n "$ns" wait --for=condition=Ready aiworkload/retained --timeout=180s
 identity > "$out/after.json"
 cmp "$out/before.json" "$out/after.json" || fail 'Object identity or data changed across stop/start.'

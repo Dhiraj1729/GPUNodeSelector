@@ -1,0 +1,9 @@
+operator:
+  image: gpu-node-selector/operator:dev
+  imageID: ""
+plugin:
+  # Simulated devices per GPU node; valid range: 1..256.
+  devices: 2
+  image: gpu-node-selector/fake-device-plugin:dev
+  imageID: ""
+imagePullPolicy: IfNotPresent

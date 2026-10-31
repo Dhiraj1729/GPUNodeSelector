@@ -57,3 +57,15 @@ Installed missing Go, Colima, Docker, Minikube, kubectl, Kubebuilder and Buildx 
 Verification: make doctor passed; missing-tool PATH returned expected exit 1; installer rerun passed; both scripts passed bash -n; Git whitespace and ignore verification recorded at handoff. Initial Homebrew/Git sandbox restrictions were resolved by approved escalation. Initial installer detected a repaired Buildx symlink too early; recheck fixed and rerun passed. These are resolved failures, not outstanding blockers.
 
 Fixed CPU settings honored: Colima 6; Minikube 2 per node. Host confirmed 10 CPUs / 16 GiB; proposed 8 GiB/40 GiB VM budget is feasible on paper, requires pressure/runtime check on Day 2. Chosen module github.com/Dhiraj1729/GpuNodeSelector. Version plan documented in docs/toolchain.md. No active Day 1 blockers; runtime/compile/envtest validation is intentionally deferred to its milestone.
+
+## Helm packaging extension — 31 October 2026
+
+Authorized after the original plan: platform and mock Llama AIWorkload charts, Make wrappers and project-focused README with preserved diagrams. Added `charts/gpu-node-selector`, `charts/aiworkloads`, `scripts/helm.sh`, `tests/helm`, and `docs/helm.md`. Tool setup includes Helm. Legacy deploy paths reject Helm ownership, and lifecycle proof redeploys through the detected owner. CRD upgrades remain explicit; uninstall retains CRD/namespaces and cluster-destroy remains full cleanup.
+
+Validation: Helm 4.3.0 strict lint, packaged/generated CRD equality, typed platform/RBAC render comparisons, default/zero/excess-replica workload render tests and invalid values; shell guards/syntax, doctor, format checks, Go vet/unit tests and whitespace checks passed. A sandbox Go-cache denial was retried with approved access and the regression checks passed. Initial test harness mistakes (builder function name and missing API-assigned test UID) were corrected before passing. Evidence: `work/helm/`. No live Helm install/upgrade/uninstall acceptance was run; existing Colima profile was stopped and left unchanged. Use docs/helm.md startup/verification/removal sequence for live acceptance.
+
+### Configurable fake-device capacity
+
+Exposed `plugin.devices` in the platform chart, default 2, schema range 1–256 matching the plugin binary. `helm-install HELM_VALUES=...` now passes platform overrides to both preflight rendering and installation. Reinstall guard accepts inactive capacity from a previous custom count, while rejecting usable capacity or capacity on other nodes. Added custom/boundary/invalid-count chart tests and guard regression coverage; original two-device E2E scenarios are unchanged. README and Helm guide explain overrides, removing consumers before capacity changes, and resetting to two before automated scenarios.
+
+Validation passed: `make helm-test shell-test fmt-check vet test` and `git diff --check`. Go cache access initially failed in the sandbox; the approved retry passed. Evidence: `work/helm/configurable-devices-tests.log`. No live cluster changes or custom-capacity E2E execution were performed.

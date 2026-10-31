@@ -1,0 +1,6 @@
+apiVersion: v2
+name: gpu-node-selector
+description: AIWorkload operator and fake GPU device plugin
+type: application
+version: 0.1.0
+appVersion: dev

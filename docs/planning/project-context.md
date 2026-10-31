@@ -12,6 +12,10 @@
 
 Overall plan and Days 1–10 were explicitly approved in this chat. All milestones completed by 30 October 2026, including full verification, demos, recovery, stop/start persistence, fresh provisioning and complete project cleanup. Final state: project Minikube/Colima VM/runtime disk and contexts are destroyed; source, evidence, host tools and shared caches remain. Day 9/10 source changes are uncommitted for review. Colima CPU=6 and Minikube CPU=2 per node remain fixed. Stop at final handoff; new work needs user instruction. See progress.md, days/day-10.md and README.md for evidence and recreation commands.
 
+## Helm extension (31 October 2026)
+
+User authorized platform and mock Llama AIWorkload Helm charts and a project-focused README. Implemented charts, explicit-context Make wrappers, generation-aware workload verification, ordered uninstall, schema/render tests and docs/helm.md. Helm owns AIWorkloads; the operator still owns inference Deployments/Services. `helm-inference` aliases `helm-aiworkloads`. Existing kubectl-managed platform resources require deliberate migration; no forced adoption. Local Helm 4.3.0 chart tests pass. The project Colima profile was observed stopped during this extension and was not started or modified; live Helm acceptance remains to be run. Historical Day 10 destruction describes that earlier handoff, not the current host state. See docs/helm.md for the current deployment interface.
+
 ## Fixed boundaries
 
 - Target: `/Users/dhirajsriharsha/Preparation/GpuNodeSelector`.
@@ -22,7 +26,7 @@ Overall plan and Days 1–10 were explicitly approved in this chat. All mileston
 - GPU labels/taint are bootstrap responsibility. Plugin owns resource advertisement; kubelet owns device allocations/lifetime.
 - Manual Node capacity patching is temporary diagnostic-only and mutually exclusive with plugin mode.
 - OwnerReferences/GC; no finalizer without an actual external obligation.
-- No CUDA, real GPU/LLM, model APIs, telemetry, autoscaling, custom scheduler/DRA, Helm, multi-cluster stack, or other scope additions.
+- No CUDA, real GPU/LLM, model APIs, telemetry, autoscaling, custom scheduler/DRA, multi-cluster stack, or other scope additions.
 - Explicit contexts and resource identity checks; never modify unrelated profiles. Routine shutdown stops, does not delete.
 - Preserve unrelated metadata and allocated Service fields; never silently adopt existing foreign/unowned children.
 - Event-driven reconciliation, semantic status comparison, generation-aware status, bounded waits and retries.

@@ -38,3 +38,7 @@ Day 3 must preserve these exact generator/dependency pins in the real Makefile/g
 Brewfile describes the tool inventory, not reproducible bottle locking. The installer keeps installed tools and never upgrades unrelated formulas. Future versions may differ on a clean host; run doctor and compare this table before scaffolding. ripgrep currently comes from the app's PATH; `make tools` installs Homebrew ripgrep when run in a shell where it is unavailable. No global shell PATH configuration was modified.
 
 [Kubebuilder's upstream guidance](https://github.com/kubernetes-sigs/kubebuilder) identifies generated go.mod as the dependency source; [controller-runtime compatibility guidance](https://github.com/kubernetes-sigs/controller-runtime) explains its Kubernetes-library minor alignment.
+
+## Helm packaging
+
+Helm CLI is included in Brewfile, the missing-tool installer and doctor. Charts use API v2 and were linted/render-tested with Helm 4.3.0 on 31 October 2026. This tool version is recorded evidence, not a pinned Homebrew bottle. See [Helm deployment](helm.md) for CRD lifecycle and live verification.

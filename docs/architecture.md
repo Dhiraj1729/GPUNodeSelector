@@ -1,5 +1,8 @@
 # Architecture
 
+For Helm deployment of the platform and mock Llama AIWorkloads, see [Helm deployment](helm.md). Keep Helm and legacy kubectl ownership separate; remove persistent Helm workloads before isolated demos.
+
+
 Status: operator, fake plugin and mock server implemented; native integration and recovery verified. Final lifecycle evidence is in the Day 10 handoff.
 
 Go module: `github.com/Dhiraj1729/GpuNodeSelector`. This is the chosen local module identity; no remote repository has been created or published.

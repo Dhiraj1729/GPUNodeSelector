@@ -15,7 +15,7 @@ if ! command -v brew >/dev/null 2>&1; then
 fi
 # Preserve existing working commands, including system Git/jq and user installations.
 # Keep this mapping aligned with Brewfile; no brew upgrade or bulk bundle operation.
-for pair in go:go git:git colima:colima docker:docker minikube:minikube kubectl:kubernetes-cli kubebuilder:kubebuilder jq:jq rg:ripgrep; do
+for pair in go:go git:git colima:colima docker:docker minikube:minikube kubectl:kubernetes-cli kubebuilder:kubebuilder jq:jq rg:ripgrep helm:helm; do
   tool="${pair%%:*}"
   formula="${pair#*:}"
   if command -v "$tool" >/dev/null 2>&1; then

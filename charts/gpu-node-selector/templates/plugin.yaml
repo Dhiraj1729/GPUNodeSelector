@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fake-gpu-device-plugin
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/part-of: gpu-node-selector
+spec:
+  selector:
+    matchLabels:
+      app: fake-gpu-device-plugin
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+  template:
+    metadata:
+      annotations:
+        ai.dhiraj.io/image-id: {{ .Values.plugin.imageID | quote }}
+      labels:
+        app: fake-gpu-device-plugin
+        app.kubernetes.io/part-of: gpu-node-selector
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 10
+      nodeSelector:
+        ai.dhiraj.io/gpu-node: "true"
+        ai.dhiraj.io/gpu-product: A100
+      tolerations:
+      - key: ai.dhiraj.io/gpu
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: plugin
+        image: {{ .Values.plugin.image | quote }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        args: [{{ printf "--devices=%d" (int .Values.plugin.devices) | quote }}]
+        resources:
+          requests:
+            cpu: 20m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        readinessProbe:
+          exec:
+            command: [/fake-device-plugin, --health]
+          periodSeconds: 3
+          timeoutSeconds: 3
+        livenessProbe:
+          exec:
+            command: [/fake-device-plugin, --health]
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+        volumeMounts:
+        - name: device-plugins
+          mountPath: /var/lib/kubelet/device-plugins
+      volumes:
+      - name: device-plugins
+        hostPath:
+          path: /var/lib/kubelet/device-plugins
+          type: Directory

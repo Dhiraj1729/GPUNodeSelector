@@ -1,0 +1,2 @@
+# Two devices exist; the third replica deliberately remains Pending.
+replicas: 3

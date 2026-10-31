@@ -1,0 +1,10 @@
+name: mock-llama
+image: gpu-node-selector/mock-inference:dev
+replicas: 2
+port: 8080
+gpu:
+  product: A100
+  count: 1
+resources:
+  cpu: 100m
+  memory: 128Mi

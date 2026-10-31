@@ -1,0 +1,6 @@
+apiVersion: v2
+name: aiworkloads
+description: Mock Llama AIWorkload managed by the GPU Node Selector operator
+type: application
+version: 0.1.0
+appVersion: dev
